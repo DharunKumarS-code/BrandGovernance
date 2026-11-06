@@ -1,6 +1,4 @@
-cd E:\claurvie
 
-@'
 # Render Blueprint for Clarivue AI
 
 services:
@@ -42,4 +40,3 @@ services:
 
       - key: ENABLE_DEMO_ENDPOINTS
         value: "false"
-'@ | Set-Content -Encoding utf8 render.yaml
