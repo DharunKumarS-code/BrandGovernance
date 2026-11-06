@@ -1,0 +1,60 @@
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+node_modules
+dist
+dist-ssr
+*.local
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+
+# Environment variables and secrets
+.env
+.env.*
+!.env.example
+
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.venv/
+venv/
+
+# Backend generated files
+backend/storage/
+
+# Frontend dependencies and builds
+frontend/node_modules/
+frontend/dist/
+
+# Test reports
+playwright-reports/
+test-results/
+playwright-report/
+
+# IDE
+.vscode/
+.idea/
+
+# Playwright temporary files
+.playwright-mcp/
+playwright-reports/
+
+.playwright-mcp/
+playwright-reports/

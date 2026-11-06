@@ -1,0 +1,42 @@
+# Render Blueprint for the Clarivue AI backend. Preparation only -- not
+# applied/deployed by this change. Secrets (sync: false) must be entered
+# manually in the Render dashboard; never committed here.
+#
+# Persistent disk: mounted at STORAGE_ROOT so uploaded guideline PDFs and
+# brand assets survive redeploys/restarts (Render's container filesystem
+# is otherwise ephemeral) -- app/core/storage.py needs no code change,
+# it already reads STORAGE_ROOT from settings.
+
+services:
+  - type: web
+    name: clarivue-backend
+    runtime: docker
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: ./backend
+    plan: free
+    healthCheckPath: /health
+    envVars:
+      - key: MONGODB_URI
+        sync: false # Atlas mongodb+srv:// connection string
+      - key: MONGODB_DB_NAME
+        value: clarivue_ai
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: GEMINI_MODEL
+        value: gemini-3.5-flash-lite
+      - key: GEMINI_EMBEDDING_MODEL
+        value: gemini-embedding-001
+      - key: FRONTEND_ORIGIN
+        sync: false # the deployed Vercel URL
+      - key: STORAGE_ROOT
+        value: /var/data
+      - key: JWT_SECRET_KEY
+        sync: false
+      - key: REQUIRE_JWT_AUTH
+        value: "true" # Phase 9 Stage 2: reject unauthenticated requests in production
+      - key: ENABLE_DEMO_ENDPOINTS
+        value: "false" # Phase 9 Stage 2: disable the org/user enumeration endpoints
+    disk:
+      name: clarivue-storage
+      mountPath: /var/data
+      sizeGB: 1

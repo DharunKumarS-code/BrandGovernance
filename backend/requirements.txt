@@ -1,0 +1,32 @@
+fastapi==0.115.0
+uvicorn[standard]==0.30.6
+pymongo==4.19.0
+# Phase 8 Stage 3: required for mongodb+srv:// URIs (MongoDB Atlas's
+# standard connection-string format) -- previously present only as an
+# untracked transitive dependency, which a clean production install
+# cannot be relied on to pull in.
+dnspython==2.9.2
+pydantic==2.9.2
+pydantic-settings==2.5.2
+python-dotenv==1.0.1
+PyMuPDF==1.24.10
+opencv-python==4.10.0.84
+python-multipart==0.0.9
+passlib[bcrypt]==1.7.4
+# Phase 9 Stage 2: passlib 1.7.4's bcrypt backend reads bcrypt.__about__
+# for version detection -- removed in bcrypt>=4.1, which otherwise
+# installs silently (passlib[bcrypt] has no upper bound) and breaks every
+# hash_password()/verify_password() call with
+# "password cannot be longer than 72 bytes" on passlib's own internal
+# self-test, regardless of the real password's length. Pinned explicitly.
+bcrypt==4.0.1
+python-jose[cryptography]==3.3.0
+pytest==8.3.3
+pytest-asyncio==0.24.0
+# Bumped 0.27.2 -> 0.28.1 by google-genai's own dependency requirement
+# below; the test suite was re-run in full against 0.28.1 with no failures.
+httpx==0.28.1
+
+# Phase 5: Gemini for analysis/claim-extraction and embeddings, via
+# Google's official SDK (one API key covers both roles).
+google-genai==1.75.0

@@ -1,0 +1,44 @@
+services:
+  mongo:
+    image: mongo:7
+    container_name: clarivue-mongo
+    restart: unless-stopped
+    ports:
+      - "27018:27017"
+    volumes:
+      - mongo-data:/data/db
+
+  backend:
+    build: ./backend
+    container_name: clarivue-backend
+    restart: unless-stopped
+    # --reload is dev-only and no longer baked into the Dockerfile's own
+    # CMD (which must be production-safe for Render) -- restored here for
+    # local docker-compose dev only.
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+    env_file:
+      - ./backend/.env
+    environment:
+      - MONGODB_URI=mongodb://mongo:27017
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend/app:/app/app
+      - backend-storage:/app/storage
+    depends_on:
+      - mongo
+
+  frontend:
+    build: ./frontend
+    container_name: clarivue-frontend
+    restart: unless-stopped
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./frontend/src:/app/src
+    depends_on:
+      - backend
+
+volumes:
+  mongo-data:
+  backend-storage:
