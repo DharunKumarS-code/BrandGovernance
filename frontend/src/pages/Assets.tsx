@@ -1,11 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
 import { assetsApi, formatApiError, type Asset } from '../api/client';
-import { useDemoContext } from '../context/DemoContext';
+import AuthenticatedImage from '../components/AuthenticatedImage';
 import AsyncState, { SuccessBanner } from '../components/AsyncState';
 import PageHeader from '../components/PageHeader';
 
 export default function Assets() {
-  const { organisationId, userId } = useDemoContext();
   const [assets, setAssets] = useState<Asset[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -104,9 +103,9 @@ export default function Assets() {
                 {logos.map((logo) => (
                   <li key={logo.id} className="flex items-center justify-between rounded border border-slate-100 p-2">
                     <div className="flex items-center gap-3">
-                      {logo.file_path && organisationId && userId && (
-                        <img
-                          src={assetsApi.fileUrl(logo.id, organisationId, userId)}
+                      {logo.file_path && (
+                        <AuthenticatedImage
+                          src={assetsApi.fileUrl(logo.id)}
                           alt={logo.name}
                           className="h-10 w-10 rounded border border-slate-100 object-contain"
                         />

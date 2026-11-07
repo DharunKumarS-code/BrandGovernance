@@ -8,13 +8,19 @@ server-side session/blocklist in this stage -- see the final report for
 why that's an explicitly named limitation, not an oversight).
 """
 
+import secrets
 from typing import Any
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from bson import ObjectId
+from bson.errors import InvalidId
+from fastapi import APIRouter, Depends, Header, HTTPException, status
 from pydantic import BaseModel
 
+from app.core.config import settings
+from app.core.db import db
 from app.core.demo_context import DemoContext, get_demo_context
-from app.core.security import create_access_token, verify_password
+from app.core.security import create_access_token, hash_password, verify_password
+from app.models.common import utcnow
 from app.repositories import users
 
 router = APIRouter(prefix="/api/auth", tags=["auth"])
@@ -23,6 +29,60 @@ router = APIRouter(prefix="/api/auth", tags=["auth"])
 class LoginInput(BaseModel):
     email: str
     password: str
+
+
+class AdminProvisionInput(BaseModel):
+    organisation_id: str
+    user_id: str
+    # Any prevents Pydantic's request-validation response from reflecting a
+    # rejected password value back to the caller. Type and length are checked
+    # below with a generic error response.
+    password: Any
+
+
+@router.post("/admin/provision", status_code=status.HTTP_204_NO_CONTENT)
+async def provision_admin(
+    payload: AdminProvisionInput,
+    x_admin_bootstrap_secret: str | None = Header(None, alias="X-Admin-Bootstrap-Secret"),
+) -> None:
+    """Set the first password for one explicitly selected existing admin.
+
+    Configure ADMIN_BOOTSTRAP_SECRET only during the setup window, then
+    remove it. The conditional update is atomic and permits one winner.
+    """
+    expected = settings.admin_bootstrap_secret
+    if not expected or not x_admin_bootstrap_secret or not secrets.compare_digest(
+        x_admin_bootstrap_secret, expected
+    ):
+        raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Invalid provisioning credentials.")
+
+    if not isinstance(payload.password, str):
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "Password must be 12 to 72 UTF-8 bytes.")
+    try:
+        password_bytes = payload.password.encode("utf-8")
+    except UnicodeEncodeError:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "Password must be 12 to 72 UTF-8 bytes.")
+    if not 12 <= len(password_bytes) <= 72:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "Password must be 12 to 72 UTF-8 bytes.")
+
+    try:
+        org_id = ObjectId(payload.organisation_id)
+        user_id = ObjectId(payload.user_id)
+    except InvalidId:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Eligible administrator account not found.")
+
+    password_hash = hash_password(payload.password)
+    result = await db["users"].update_one(
+        {
+            "_id": user_id,
+            "organisation_id": org_id,
+            "role": "admin",
+            "$or": [{"password_hash": None}, {"password_hash": {"$exists": False}}],
+        },
+        {"$set": {"password_hash": password_hash, "updated_at": utcnow()}},
+    )
+    if result.modified_count != 1:
+        raise HTTPException(status.HTTP_409_CONFLICT, "Administrator is not eligible for provisioning.")
 
 
 @router.post("/login")

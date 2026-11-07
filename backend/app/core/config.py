@@ -8,6 +8,8 @@ class Settings(BaseSettings):
     jwt_secret_key: str = "dev-secret-change-me"
     jwt_algorithm: str = "HS256"
     jwt_expire_minutes: int = 120
+    # Temporary operator-held secret for one-time administrator setup.
+    admin_bootstrap_secret: str | None = None
     # Phase 9 Stage 2: when True, every request MUST carry a valid JWT
     # (Authorization: Bearer ...) -- the legacy X-Organisation-Id/
     # X-User-Id demo headers are rejected outright. Default False

@@ -45,6 +45,28 @@ export function setAuthToken(token: string | null) {
   }
 }
 
+export function clearAuthToken() {
+  setAuthToken(null);
+  onUnauthorized?.();
+}
+
+export async function fetchAuthenticatedImage(url: string, signal: AbortSignal): Promise<Blob> {
+  const token = getStoredAuthToken();
+  const headers = new Headers();
+  if (token) headers.set('Authorization', `Bearer ${token}`);
+  else {
+    // Retain local demo-mode support. Production with REQUIRE_JWT_AUTH=true
+    // always takes the Bearer branch.
+    const common = api.defaults.headers.common as Record<string, string | undefined>;
+    if (common['X-Organisation-Id']) headers.set('X-Organisation-Id', common['X-Organisation-Id']);
+    if (common['X-User-Id']) headers.set('X-User-Id', common['X-User-Id']);
+  }
+  const response = await fetch(url, { headers, signal });
+  if (response.status === 401 && token) clearAuthToken();
+  if (!response.ok) throw new Error(`Image request failed (${response.status}).`);
+  return response.blob();
+}
+
 export function getStoredAuthToken(): string | null {
   return localStorage.getItem(TOKEN_STORAGE_KEY);
 }
@@ -69,8 +91,7 @@ api.interceptors.response.use(
   (res) => res,
   (err) => {
     if (err?.response?.status === 401 && getStoredAuthToken()) {
-      setAuthToken(null);
-      onUnauthorized?.();
+      clearAuthToken();
     }
     return Promise.reject(err);
   },
@@ -454,8 +475,8 @@ export const submissionsApi = {
     });
   },
   // Query params, not headers: an <img src=...> can't attach custom headers.
-  imageUrl: (submissionId: string, version: number, organisationId: string, userId: string) =>
-    `${API_BASE_URL}/api/submissions/${submissionId}/revisions/${version}/image?organisation_id=${organisationId}&user_id=${userId}`,
+  imageUrl: (submissionId: string, version: number) =>
+    `${API_BASE_URL}/api/submissions/${submissionId}/revisions/${version}/image`,
   updateDraft: (id: string, data: { title?: string; content?: string }) =>
     api.patch<Submission>(`/api/submissions/${id}/draft`, data),
   submit: (id: string) => api.post<Submission>(`/api/submissions/${id}/submit`),
@@ -506,6 +527,5 @@ export const assetsApi = {
   update: (id: string, data: Partial<Asset>) => api.patch<Asset>(`/api/assets/${id}`, data),
   remove: (id: string) => api.delete(`/api/assets/${id}`),
   // Query params, not headers: an <img src=...> can't attach custom headers.
-  fileUrl: (id: string, organisationId: string, userId: string) =>
-    `${API_BASE_URL}/api/assets/${id}/file?organisation_id=${organisationId}&user_id=${userId}`,
+  fileUrl: (id: string) => `${API_BASE_URL}/api/assets/${id}/file`,
 };

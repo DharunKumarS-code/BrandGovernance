@@ -14,12 +14,13 @@ import { useDemoContext } from '../context/DemoContext';
 import AsyncState, { SuccessBanner } from '../components/AsyncState';
 import FindingsPanel from '../components/FindingsPanel';
 import ReviewPanel from '../components/ReviewPanel';
+import AuthenticatedImage from '../components/AuthenticatedImage';
 
 const EDITABLE_STATUSES = new Set(['draft', 'pending_review', 'changes_requested']);
 
 export default function SubmissionDetail() {
   const { id } = useParams<{ id: string }>();
-  const { users, userId, organisationId } = useDemoContext();
+  const { users, userId } = useDemoContext();
 
   const [submission, setSubmission] = useState<Submission | null>(null);
   const [current, setCurrent] = useState<Revision | null>(null);
@@ -232,9 +233,9 @@ export default function SubmissionDetail() {
                 {submission.submitted_at && <> &middot; submitted {new Date(submission.submitted_at).toLocaleString()}</>}
               </p>
 
-              {current.image_path && organisationId && userId && (
-                <img
-                  src={submissionsApi.imageUrl(submission.id, current.version, organisationId, userId)}
+              {current.image_path && (
+                <AuthenticatedImage
+                  src={submissionsApi.imageUrl(submission.id, current.version)}
                   alt={submission.title}
                   className="mb-3 max-h-96 rounded border border-slate-200 object-contain"
                 />

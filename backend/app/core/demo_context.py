@@ -89,14 +89,19 @@ async def get_demo_context(
 
 
 async def get_demo_context_from_query(
+    request: Request,
     organisation_id: str | None = Query(None, description="DEMO-ONLY organisation id"),
     user_id: str | None = Query(None, description="DEMO-ONLY user id"),
     token: str | None = Query(None, description="JWT access token, for requests (e.g. <img src>) that can't send an Authorization header"),
 ) -> DemoContext:
     """Same validation as get_demo_context, but reads query params instead
     of headers -- for cases (e.g. serving an <img src=...> file) where the
-    browser cannot attach custom headers. A `token` query param is
-    supported for the same reason Authorization can't be used there."""
+    browser cannot attach custom headers. A `token` query param remains
+    supported for legacy callers. Authorization Bearer credentials take
+    precedence when both forms are supplied."""
+    auth_header = request.headers.get("authorization", "")
+    if auth_header.lower().startswith("bearer "):
+        return await _resolve_from_token(auth_header[7:].strip())
     if token:
         return await _resolve_from_token(token)
     if settings.require_jwt_auth:
